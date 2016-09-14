@@ -96,7 +96,7 @@ namespace GLGenerator
                 commands.Add(command);
             }
 
-            using (StreamWriter output = new StreamWriter("Registry/gl.cs"))
+            using (StreamWriter output = new StreamWriter("Registry/GL.cs"))
             {
                 output.WriteLine("public static class GL");
                 output.WriteLine("{");
