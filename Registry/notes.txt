@@ -1,0 +1,4 @@
+NOTES
+
+- Why are there two 64-bit enum values?
+- GL_ALPHA16_ICC_SGIX has no value defined.
