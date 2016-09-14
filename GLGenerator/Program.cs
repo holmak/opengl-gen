@@ -8,26 +8,41 @@ using System.Xml;
 
 namespace GLGenerator
 {
-    class GLCommand
-    {
-        public string Name;
-        public List<string> ParamTypes = new List<string>();
-        public List<string> ParamNames = new List<string>();
-        public string ReturnType;
-    }
-
     class Program
     {
+        public static string[] IncludedFeatures = new string[]
+        {
+            "GL_VERSION_1_0",
+            "GL_VERSION_1_1",
+            "GL_VERSION_1_2",
+            "GL_VERSION_1_3",
+            "GL_VERSION_1_4",
+            "GL_VERSION_1_5",
+            "GL_VERSION_2_0",
+            "GL_VERSION_2_1",
+            "GL_VERSION_3_0",
+            "GL_VERSION_3_1",
+            "GL_VERSION_3_2",
+            "GL_VERSION_3_3",
+        };
+        
         static void Main(string[] args)
         {
             XmlDocument document = new XmlDocument();
             document.Load("Registry/gl.xml");
 
+            // Enum and command definitions.
             Dictionary<string, List<string>> groups = new Dictionary<string, List<string>>();
             Dictionary<string, uint> enumValues = new Dictionary<string, uint>();
-            List<GLCommand> commands = new List<GLCommand>();
-            // TODO: Features
-            // TODO: Extensions
+            Dictionary<string, GLCommand> commands = new Dictionary<string, GLCommand>();
+
+            // These are the names of commands and enum values supported by the selected GL features and extensions.
+            List<string> includedEnums = new List<string>();
+            List<string> includedCommands = new List<string>();
+
+            //==============================================================================
+            // Parse groups (subsets of GLenum values; these translate to C# enums)
+            //==============================================================================
 
             foreach (XmlNode group in document.SelectNodes("/registry/groups/group"))
             {
@@ -36,6 +51,10 @@ namespace GLGenerator
 
                 groups.Add(group.Attributes["name"].Value, members);
             }
+
+            //==============================================================================
+            // Parse enum numeric values
+            //==============================================================================
 
             foreach (XmlNode constant in document.SelectNodes("/registry/enums/enum"))
             {
@@ -73,6 +92,10 @@ namespace GLGenerator
                 enumValues.Add(name, value);
             }
 
+            //==============================================================================
+            // Parse function names and types
+            //==============================================================================
+
             foreach (XmlNode commandNode in document.SelectNodes("/registry/commands/command"))
             {
                 GLCommand command = new GLCommand();
@@ -88,13 +111,57 @@ namespace GLGenerator
                     command.ParamNames.Add(name);
                 }
 
-                commands.Add(command);
+                commands.Add(command.Name, command);
+            }
+
+            //==============================================================================
+            // Parse feature sets
+            //==============================================================================
+
+            foreach (XmlNode feature in document.SelectNodes("/registry/feature"))
+            {
+                string featureName = GetAttributeOrNull(feature, "name");
+                if (IncludedFeatures.Contains(featureName))
+                {
+                    var removedEnums = feature.SelectNodes("remove/enum")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    var removedCommands = feature.SelectNodes("remove/command")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    var requiredEnums = feature.SelectNodes("require/enum")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    var requiredCommands = feature.SelectNodes("require/command")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    foreach (string name in removedEnums)
+                    {
+                        includedEnums.Remove(name);
+                    }
+
+                    foreach (string name in removedCommands)
+                    {
+                        includedCommands.Remove(name);
+                    }
+
+                    includedEnums.AddRange(requiredEnums);
+                    includedCommands.AddRange(requiredCommands);
+                }
             }
 
             using (StreamWriter output = new StreamWriter("Registry/GL.cs"))
             {
                 output.WriteLine("public static class GL");
                 output.WriteLine("{");
+
+                //==============================================================================
+                // Generate enum declarations
+                //==============================================================================
 
                 foreach (var pair in groups)
                 {
@@ -105,19 +172,27 @@ namespace GLGenerator
                     output.WriteLine("    {");
                     foreach (string member in members)
                     {
-                        uint value;
-                        if (enumValues.TryGetValue(member, out value))
+                        if (includedEnums.Contains(member))
                         {
-                            output.WriteLine("        {0} = 0x{1:X8},", member, value);
+                            uint value;
+                            if (enumValues.TryGetValue(member, out value))
+                            {
+                                output.WriteLine("        {0} = 0x{1:X8},", member, value);
+                            }
                         }
                     }
                     output.WriteLine("    }");
                     output.WriteLine();
                 }
 
-                foreach (GLCommand command in commands)
+                //==============================================================================
+                // Generate function pointers for GL functions
+                //==============================================================================
+
+                foreach (string commandName in includedCommands)
                 {
-                    string delegateName = command.Name.Substring(2);
+                    GLCommand command = commands[commandName];
+                    string delegateName = GetDelegateName(command.Name);
                     output.Write("    public delegate {0} {1}(", command.ReturnType, delegateName);
                     for (int i = 0; i < command.ParamNames.Count; i++)
                     {
@@ -125,16 +200,21 @@ namespace GLGenerator
                         output.Write("{0} {1}{2}", command.ParamTypes[i], command.ParamNames[i], comma);
                     }
                     output.WriteLine(");");
-                    output.WriteLine("    public {0} {1};", delegateName, command.Name);
+                    output.WriteLine("    public static {0} {1};", delegateName, command.Name);
                     output.WriteLine();
                 }
+
+                //==============================================================================
+                // Generate code to load the GL function pointers
+                //==============================================================================
 
                 output.WriteLine("    public static void LoadAll()");
                 output.WriteLine("    {");
 
-                foreach (GLCommand command in commands)
+                foreach (string commandName in includedCommands)
                 {
-                    string delegateName = command.Name.Substring(2);
+                    GLCommand command = commands[commandName];
+                    string delegateName = GetDelegateName(command.Name);
                     output.WriteLine("        {0} = Marshal.GetDelegateForFunctionPointer<{1}>(SDL.SDL_GL_GetProcAddress(\"{0}\"));",
                         command.Name, delegateName);
                 }
@@ -157,12 +237,25 @@ namespace GLGenerator
             XmlNode attrNode = node.Attributes[attribute];
             if (attrNode != null)
             {
-                return attrNode.Name;
+                return attrNode.Value;
             }
             else
             {
                 return null;
             }
         }
+
+        static string GetDelegateName(string commandName)
+        {
+            return commandName + "Delegate";
+        }
+    }
+
+    class GLCommand
+    {
+        public string Name;
+        public List<string> ParamTypes = new List<string>();
+        public List<string> ParamNames = new List<string>();
+        public string ReturnType;
     }
 }
