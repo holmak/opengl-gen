@@ -41,30 +41,25 @@ namespace GLGenerator
             {
                 string name = constant.Attributes["name"].Value;
                 string literal = constant.Attributes["value"].Value;
+                string api = GetAttributeOrNull(constant, "api");
+                string type = GetAttributeOrNull(constant, "type");
 
                 // Ignore enum values that are part of other APIs, like GLES.
-                XmlNode apiNode = constant.Attributes["api"];
-                if (apiNode != null && apiNode.Value != "gl")
+                if (api != null && api != "gl")
                 {
                     continue;
                 }
 
-                uint value;
-                if (constant.Attributes["type"] != null)
+                if (type != null)
                 {
                     // Ignore enums with non-default types. (There are a couple of enums with 64-bit values.)
                     continue;
                 }
-                else if (literal.StartsWith("0x"))
+
+                uint value;
+                if (literal.StartsWith("0x"))
                 {
-                    try
-                    {
-                        value = Convert.ToUInt32(literal, 16);
-                    }
-                    catch (OverflowException)
-                    {
-                        continue;
-                    }
+                    value = Convert.ToUInt32(literal, 16);
                 }
                 else if (literal.StartsWith("-"))
                 {
@@ -155,6 +150,19 @@ namespace GLGenerator
             string text = node.InnerText;
             name = node.SelectSingleNode("name").InnerText;
             type = text.Substring(0, text.Length - name.Length).Trim();
+        }
+
+        static string GetAttributeOrNull(XmlNode node, string attribute)
+        {
+            XmlNode attrNode = node.Attributes[attribute];
+            if (attrNode != null)
+            {
+                return attrNode.Name;
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }
