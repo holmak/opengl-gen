@@ -103,9 +103,12 @@ namespace GLGenerator
 
                 foreach (var pair in groups)
                 {
-                    output.WriteLine("    public enum {0} : uint", pair.Key);
+                    string name = pair.Key;
+                    List<string> members = pair.Value;
+
+                    output.WriteLine("    public enum {0} : uint", name);
                     output.WriteLine("    {");
-                    foreach (string member in pair.Value)
+                    foreach (string member in members)
                     {
                         uint value;
                         if (enumValues.TryGetValue(member, out value))
