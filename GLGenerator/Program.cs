@@ -149,8 +149,21 @@ namespace GLGenerator
                         includedCommands.Remove(name);
                     }
 
-                    includedEnums.AddRange(requiredEnums);
-                    includedCommands.AddRange(requiredCommands);
+                    foreach (string name in requiredEnums)
+                    {
+                        if (!includedEnums.Contains(name))
+                        {
+                            includedEnums.Add(name);
+                        }
+                    }
+
+                    foreach (string name in requiredCommands)
+                    {
+                        if (!includedCommands.Contains(name))
+                        {
+                            includedCommands.Add(name);
+                        }
+                    }
                 }
             }
 
@@ -165,7 +178,10 @@ namespace GLGenerator
                     output.WriteLine("//   " + version);
                 }
                 output.WriteLine();
-
+                output.WriteLine("using System;");
+                output.WriteLine("using System.Runtime.InteropServices;");
+                output.WriteLine("using SDL2;");
+                output.WriteLine();
                 output.WriteLine("public static class GL");
                 output.WriteLine("{");
 
@@ -203,11 +219,11 @@ namespace GLGenerator
                 {
                     GLCommand command = commands[commandName];
                     string delegateName = GetDelegateName(command.Name);
-                    output.Write("    public delegate {0} {1}(", command.ReturnType, delegateName);
+                    output.Write("    public delegate {0} {1}(", TranslateType(command.ReturnType), delegateName);
                     for (int i = 0; i < command.ParamNames.Count; i++)
                     {
                         string comma = (i < command.ParamNames.Count - 1) ? ", " : "";
-                        output.Write("{0} {1}{2}", command.ParamTypes[i], command.ParamNames[i], comma);
+                        output.Write("{0} {1}{2}", TranslateType(command.ParamTypes[i]), TranslateName(command.ParamNames[i]), comma);
                     }
                     output.WriteLine(");");
                     output.WriteLine("    public static {0} {1};", delegateName, command.Name);
@@ -258,6 +274,83 @@ namespace GLGenerator
         static string GetDelegateName(string commandName)
         {
             return commandName + "Delegate";
+        }
+
+        static string TranslateType(string type)
+        {
+            Dictionary<string, string> translations = new Dictionary<string, string>
+            {
+                { "const GLbyte *", "/*const*/ byte[]" },
+                { "const GLchar *", "/*const*/ IntPtr" },
+                { "const GLchar *const*", "/*const*/ IntPtr" },
+                { "const GLdouble *", "/*const*/ double[]" },
+                { "const GLenum *", "/*const*/ IntPtr" },
+                { "const GLfloat *", "/*const*/ float[]" },
+                { "const GLint *", "/*const*/ int[]" },
+                { "const GLshort *", "/*const*/ short[]" },
+                { "const GLsizei *", "/*const*/ int[]" },
+                { "const GLubyte *", "/*const*/ byte[]" },
+                { "const GLuint *", "/*const*/ uint[]" },
+                { "const GLushort *", "/*const*/ ushort[]" },
+                { "const void *", "byte[]" },
+                { "const void *const*", "/*const*/ IntPtr" },
+                { "GLbitfield", "Enum" },
+                { "GLboolean *", "bool[]" },
+                { "GLboolean", "bool" },
+                { "GLbyte *", "byte[]" },
+                { "GLchar *", "IntPtr" },
+                { "GLdouble *", "double[]" },
+                { "GLdouble", "double" },
+                { "GLenum *", "IntPtr" },
+                { "GLenum", "Enum" },
+                { "GLfloat *", "float[]" },
+                { "GLfloat", "float" },
+                { "GLint *", "int[]" },
+                { "GLint", "int" },
+                { "GLint64 *", "long[]" },
+                { "GLint64", "long" },
+                { "GLintptr", "IntPtr" },
+                { "GLshort", "short" },
+                { "GLsizei *", "int[]" },
+                { "GLsizei", "int" },
+                { "GLsizeiptr", "IntPtr" },
+                { "GLsync", "IntPtr" },
+                { "GLubyte", "byte" },
+                { "GLuint *", "uint[]" },
+                { "GLuint", "uint" },
+                { "GLuint64 *", "ulong[]" },
+                { "GLuint64", "ulong" },
+                { "void *", "byte[]" },
+                { "void **", "IntPtr" },
+            };
+
+            string translated;
+            if (translations.TryGetValue(type, out translated))
+            {
+                return translated;
+            }
+            else
+            {
+                return type;
+            }
+        }
+
+        static string TranslateName(string name)
+        {
+            // Escape identifiers that are also C# reserved tokens.
+            string[] reservedTokens = new string[]
+            {
+                "params",
+                "ref",
+                "string",
+            };
+
+            if (reservedTokens.Contains(name))
+            {
+                name = "@" + name;
+            }
+
+            return name;
         }
     }
 
