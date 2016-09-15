@@ -182,6 +182,7 @@ namespace GLGenerator
                 output.WriteLine();
                 output.WriteLine("using System;");
                 output.WriteLine("using System.Runtime.InteropServices;");
+                output.WriteLine("using System.Text;");
                 output.WriteLine("using SDL2;");
                 output.WriteLine();
                 output.WriteLine("public static class GL");
@@ -272,11 +273,11 @@ namespace GLGenerator
                 foreach (string commandName in includedCommands)
                 {
                     GLCommand command = commands[commandName];
-                    output.Write("        public delegate {0} {1}(", TranslateType(groups.Keys, command.ReturnType), command.Name);
+                    output.Write("        public delegate {0} {1}(", TranslateType(groups.Keys, true, command.ReturnType), command.Name);
                     for (int i = 0; i < command.ParamNames.Count; i++)
                     {
                         string comma = (i < command.ParamNames.Count - 1) ? ", " : "";
-                        output.Write("{0} {1}{2}", TranslateType(groups.Keys, command.ParamTypes[i]), TranslateName(command.ParamNames[i]), comma);
+                        output.Write("{0} {1}{2}", TranslateType(groups.Keys, false, command.ParamTypes[i]), TranslateName(command.ParamNames[i]), comma);
                     }
                     output.WriteLine(");");
                 }
@@ -311,13 +312,13 @@ namespace GLGenerator
             }
         }
 
-        static string TranslateType(IEnumerable<string> definedGroups, GLType type)
+        static string TranslateType(IEnumerable<string> definedGroups, bool isReturnType, GLType type)
         {
             Dictionary<string, string> translations = new Dictionary<string, string>
             {
                 { "const GLbyte *", "/*const*/ byte[]" },
-                { "const GLchar *", "/*const*/ IntPtr" },
-                { "const GLchar *const*", "/*const*/ IntPtr" },
+                { "const GLchar *", "/*const*/ string" },
+                { "const GLchar *const*", "/*const*/ string[]" },
                 { "const GLdouble *", "/*const*/ double[]" },
                 { "const GLenum *", "/*const*/ IntPtr" },
                 { "const GLfloat *", "/*const*/ float[]" },
@@ -330,30 +331,30 @@ namespace GLGenerator
                 { "const void *", "byte[]" },
                 { "const void *const*", "/*const*/ IntPtr" },
                 { "GLbitfield", "GLenum" },
-                { "GLboolean *", "bool[]" },
+                { "GLboolean *", "out bool" },
                 { "GLboolean", "bool" },
-                { "GLbyte *", "byte[]" },
-                { "GLchar *", "IntPtr" },
-                { "GLdouble *", "double[]" },
+                { "GLbyte *", "out byte" },
+                { "GLchar *", "StringBuilder" },
+                { "GLdouble *", "out double" },
                 { "GLdouble", "double" },
                 { "GLenum *", "IntPtr" },
                 { "GLenum", "GLenum" },
-                { "GLfloat *", "float[]" },
+                { "GLfloat *", "out float" },
                 { "GLfloat", "float" },
-                { "GLint *", "int[]" },
+                { "GLint *", "out int" },
                 { "GLint", "int" },
-                { "GLint64 *", "long[]" },
+                { "GLint64 *", "out long" },
                 { "GLint64", "long" },
                 { "GLintptr", "IntPtr" },
                 { "GLshort", "short" },
-                { "GLsizei *", "int[]" },
+                { "GLsizei *", "out int" },
                 { "GLsizei", "int" },
                 { "GLsizeiptr", "IntPtr" },
                 { "GLsync", "IntPtr" },
                 { "GLubyte", "byte" },
-                { "GLuint *", "uint[]" },
+                { "GLuint *", "out uint" },
                 { "GLuint", "uint" },
-                { "GLuint64 *", "ulong[]" },
+                { "GLuint64 *", "out ulong" },
                 { "GLuint64", "ulong" },
                 { "void *", "byte[]" },
                 { "void **", "IntPtr" },
@@ -376,6 +377,12 @@ namespace GLGenerator
             }
             else if (translations.TryGetValue(type.Name, out translated))
             {
+                // Native functions can't return C# arrays.
+                if (isReturnType && translated == "byte[]")
+                {
+                    return "IntPtr";
+                }
+
                 return translated;
             }
             else
