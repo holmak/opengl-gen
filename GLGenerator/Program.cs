@@ -24,6 +24,17 @@ namespace GLGenerator
             "GL_VERSION_3_1",
             "GL_VERSION_3_2",
             "GL_VERSION_3_3",
+            //"GL_VERSION_4_0",
+            //"GL_VERSION_4_1",
+            //"GL_VERSION_4_2",
+            //"GL_VERSION_4_3",
+            //"GL_VERSION_4_4",
+            //"GL_VERSION_4_5",
+        };
+
+        public static string[] IncludedExtensions = new string[]
+        {
+            "GL_EXT_texture_compression_s3tc",
         };
         
         static void Main(string[] args)
@@ -125,49 +136,30 @@ namespace GLGenerator
                 string featureName = GetAttributeOrNull(feature, "name");
                 if (IncludedFeatures.Contains(featureName))
                 {
-                    var removedEnums = feature.SelectNodes("remove/enum")
-                        .Cast<XmlNode>()
-                        .Select(x => GetAttributeOrNull(x, "name"));
-
-                    var removedCommands = feature.SelectNodes("remove/command")
-                        .Cast<XmlNode>()
-                        .Select(x => GetAttributeOrNull(x, "name"));
-
-                    var requiredEnums = feature.SelectNodes("require/enum")
-                        .Cast<XmlNode>()
-                        .Select(x => GetAttributeOrNull(x, "name"));
-
-                    var requiredCommands = feature.SelectNodes("require/command")
-                        .Cast<XmlNode>()
-                        .Select(x => GetAttributeOrNull(x, "name"));
-
-                    foreach (string name in removedEnums)
-                    {
-                        includedEnums.Remove(name);
-                    }
-
-                    foreach (string name in removedCommands)
-                    {
-                        includedCommands.Remove(name);
-                    }
-
-                    foreach (string name in requiredEnums)
-                    {
-                        if (!includedEnums.Contains(name))
-                        {
-                            includedEnums.Add(name);
-                        }
-                    }
-
-                    foreach (string name in requiredCommands)
-                    {
-                        if (!includedCommands.Contains(name))
-                        {
-                            includedCommands.Add(name);
-                        }
-                    }
+                    ProcessFeatureOrExtension(feature, includedEnums, includedCommands);
                 }
             }
+
+            //==============================================================================
+            // Parse extensions
+            //==============================================================================
+
+            foreach (XmlNode extension in document.SelectNodes("/registry/extensions/extension"))
+            {
+                string extensionName = GetAttributeOrNull(extension, "name");
+                string api = GetAttributeOrNull(extension, "supported");
+
+                bool isForGL = api.Split('|').Contains("gl");
+
+                if (isForGL && IncludedExtensions.Contains(extensionName))
+                {
+                    ProcessFeatureOrExtension(extension, includedEnums, includedCommands);
+                }
+            }
+
+            //==============================================================================
+            // Generate code
+            //==============================================================================
 
             using (StreamWriter output = new StreamWriter("Registry/GL.cs"))
             {
@@ -309,6 +301,51 @@ namespace GLGenerator
             else
             {
                 return null;
+            }
+        }
+
+        static void ProcessFeatureOrExtension(XmlNode node, List<string> includedEnums, List<string> includedCommands)
+        {
+            var removedEnums = node.SelectNodes("remove/enum")
+                .Cast<XmlNode>()
+                .Select(x => GetAttributeOrNull(x, "name"));
+
+            var removedCommands = node.SelectNodes("remove/command")
+                .Cast<XmlNode>()
+                .Select(x => GetAttributeOrNull(x, "name"));
+
+            var requiredEnums = node.SelectNodes("require/enum")
+                .Cast<XmlNode>()
+                .Select(x => GetAttributeOrNull(x, "name"));
+
+            var requiredCommands = node.SelectNodes("require/command")
+                .Cast<XmlNode>()
+                .Select(x => GetAttributeOrNull(x, "name"));
+
+            foreach (string name in removedEnums)
+            {
+                includedEnums.Remove(name);
+            }
+
+            foreach (string name in removedCommands)
+            {
+                includedCommands.Remove(name);
+            }
+
+            foreach (string name in requiredEnums)
+            {
+                if (!includedEnums.Contains(name))
+                {
+                    includedEnums.Add(name);
+                }
+            }
+
+            foreach (string name in requiredCommands)
+            {
+                if (!includedCommands.Contains(name))
+                {
+                    includedCommands.Add(name);
+                }
             }
         }
 
