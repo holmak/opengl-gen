@@ -1800,6 +1800,14 @@ typedef unsigned int GLhandleARB;
             <enum name="GL_SEPARABLE_2D_EXT"/>
         </group>
 
+        <group name="ShaderType">
+            <enum name="GL_FRAGMENT_SHADER"/>
+            <enum name="GL_FRAGMENT_SHADER_ARB"/>
+            <enum name="GL_GEOMETRY_SHADER"/>
+            <enum name="GL_VERTEX_SHADER"/>
+            <enum name="GL_VERTEX_SHADER_ARB"/>
+        </group>
+
         <group name="ShadingModel">
             <enum name="GL_FLAT"/>
             <enum name="GL_SMOOTH"/>
@@ -11741,7 +11749,7 @@ typedef unsigned int GLhandleARB;
         </command>
         <command>
             <proto><ptype>GLuint</ptype> <name>glCreateShader</name></proto>
-            <param><ptype>GLenum</ptype> <name>type</name></param>
+            <param group="ShaderType"><ptype>GLenum</ptype> <name>type</name></param>
         </command>
         <command>
             <proto group="handleARB"><ptype>GLhandleARB</ptype> <name>glCreateShaderObjectARB</name></proto>
