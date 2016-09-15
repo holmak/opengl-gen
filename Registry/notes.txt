@@ -2,3 +2,4 @@ NOTES
 
 - Why are there two 64-bit enum values?
 - GL_ALPHA16_ICC_SGIX has no value defined.
+- Some enum groups are referenced but never defined, so you have to use GLenum instead.

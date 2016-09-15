@@ -102,10 +102,12 @@ namespace GLGenerator
 
                 XmlNode prototypeNode = commandNode.SelectSingleNode("proto");
                 ParseTypeAndName(prototypeNode, out command.ReturnType, out command.Name);
+                string returnTypeGroup = GetAttributeOrNull(prototypeNode, "group");
 
                 foreach (XmlNode paramNode in commandNode.SelectNodes("param"))
                 {
-                    string type, name;
+                    string name;
+                    GLType type;
                     ParseTypeAndName(paramNode, out type, out name);
                     command.ParamTypes.Add(type);
                     command.ParamNames.Add(name);
@@ -212,27 +214,41 @@ namespace GLGenerator
                 }
 
                 //==============================================================================
+                // Generate an enum containing all GL constants
+                //==============================================================================
+
+                output.WriteLine("    public enum GLenum : uint");
+                output.WriteLine("    {");
+                foreach (string member in includedEnums)
+                {
+                    uint value;
+                    if (enumValues.TryGetValue(member, out value))
+                    {
+                        output.WriteLine("        {0} = 0x{1:X8},", member, value);
+                    }
+                }
+                output.WriteLine("    }");
+                output.WriteLine();
+
+                //==============================================================================
                 // Generate function pointers for GL functions
                 //==============================================================================
 
                 foreach (string commandName in includedCommands)
                 {
                     GLCommand command = commands[commandName];
-                    string delegateName = GetDelegateName(command.Name);
-                    output.Write("    public delegate {0} {1}(", TranslateType(command.ReturnType), delegateName);
-                    for (int i = 0; i < command.ParamNames.Count; i++)
-                    {
-                        string comma = (i < command.ParamNames.Count - 1) ? ", " : "";
-                        output.Write("{0} {1}{2}", TranslateType(command.ParamTypes[i]), TranslateName(command.ParamNames[i]), comma);
-                    }
-                    output.WriteLine(");");
-                    output.WriteLine("    public static {0} {1};", delegateName, command.Name);
-                    output.WriteLine();
+                    output.WriteLine("    public static DelegateTypes.{0} {0};", command.Name);
                 }
+                output.WriteLine();
 
                 //==============================================================================
                 // Generate code to load the GL function pointers
                 //==============================================================================
+
+                output.WriteLine("    private static T Load<T>(string name)");
+                output.WriteLine("    {");
+                output.WriteLine("        return Marshal.GetDelegateForFunctionPointer<T>(SDL.SDL_GL_GetProcAddress(name));");
+                output.WriteLine("    }");
 
                 output.WriteLine("    public static void LoadAll()");
                 output.WriteLine("    {");
@@ -240,9 +256,29 @@ namespace GLGenerator
                 foreach (string commandName in includedCommands)
                 {
                     GLCommand command = commands[commandName];
-                    string delegateName = GetDelegateName(command.Name);
-                    output.WriteLine("        {0} = Marshal.GetDelegateForFunctionPointer<{1}>(SDL.SDL_GL_GetProcAddress(\"{0}\"));",
-                        command.Name, delegateName);
+                    output.WriteLine("        {0} = Load<DelegateTypes.{0}>(\"{0}\");", command.Name);
+                }
+
+                output.WriteLine("    }");
+                output.WriteLine();
+
+                //==============================================================================
+                // Generate delegate types
+                //==============================================================================
+
+                output.WriteLine("    public static class DelegateTypes");
+                output.WriteLine("    {");
+
+                foreach (string commandName in includedCommands)
+                {
+                    GLCommand command = commands[commandName];
+                    output.Write("        public delegate {0} {1}(", TranslateType(groups.Keys, command.ReturnType), command.Name);
+                    for (int i = 0; i < command.ParamNames.Count; i++)
+                    {
+                        string comma = (i < command.ParamNames.Count - 1) ? ", " : "";
+                        output.Write("{0} {1}{2}", TranslateType(groups.Keys, command.ParamTypes[i]), TranslateName(command.ParamNames[i]), comma);
+                    }
+                    output.WriteLine(");");
                 }
 
                 output.WriteLine("    }");
@@ -251,11 +287,15 @@ namespace GLGenerator
             }
         }
 
-        static void ParseTypeAndName(XmlNode node, out string type, out string name)
+        static void ParseTypeAndName(XmlNode node, out GLType type, out string name)
         {
             string text = node.InnerText;
             name = node.SelectSingleNode("name").InnerText;
-            type = text.Substring(0, text.Length - name.Length).Trim();
+            type = new GLType
+            {
+                Name = text.Substring(0, text.Length - name.Length).Trim(),
+                Group = GetAttributeOrNull(node, "group"),
+            };
         }
 
         static string GetAttributeOrNull(XmlNode node, string attribute)
@@ -271,12 +311,7 @@ namespace GLGenerator
             }
         }
 
-        static string GetDelegateName(string commandName)
-        {
-            return commandName + "Delegate";
-        }
-
-        static string TranslateType(string type)
+        static string TranslateType(IEnumerable<string> definedGroups, GLType type)
         {
             Dictionary<string, string> translations = new Dictionary<string, string>
             {
@@ -294,7 +329,7 @@ namespace GLGenerator
                 { "const GLushort *", "/*const*/ ushort[]" },
                 { "const void *", "byte[]" },
                 { "const void *const*", "/*const*/ IntPtr" },
-                { "GLbitfield", "Enum" },
+                { "GLbitfield", "GLenum" },
                 { "GLboolean *", "bool[]" },
                 { "GLboolean", "bool" },
                 { "GLbyte *", "byte[]" },
@@ -302,7 +337,7 @@ namespace GLGenerator
                 { "GLdouble *", "double[]" },
                 { "GLdouble", "double" },
                 { "GLenum *", "IntPtr" },
-                { "GLenum", "Enum" },
+                { "GLenum", "GLenum" },
                 { "GLfloat *", "float[]" },
                 { "GLfloat", "float" },
                 { "GLint *", "int[]" },
@@ -325,13 +360,27 @@ namespace GLGenerator
             };
 
             string translated;
-            if (translations.TryGetValue(type, out translated))
+            if (type.Name == "GLenum" && type.Group != null)
+            {
+                // Some groups are referenced, but never defined. In those cases, just use GLenum.
+                if (!definedGroups.Contains(type.Group))
+                {
+                    return "GLenum";
+                }
+
+                return type.Group;
+            }
+            else if (type.Group == "String")
+            {
+                return "IntPtr";
+            }
+            else if (translations.TryGetValue(type.Name, out translated))
             {
                 return translated;
             }
             else
             {
-                return type;
+                return type.Name;
             }
         }
 
@@ -357,8 +406,14 @@ namespace GLGenerator
     class GLCommand
     {
         public string Name;
-        public List<string> ParamTypes = new List<string>();
+        public List<GLType> ParamTypes = new List<GLType>();
         public List<string> ParamNames = new List<string>();
-        public string ReturnType;
+        public GLType ReturnType;
+    }
+
+    struct GLType
+    {
+        public string Name;
+        public string Group;
     }
 }
