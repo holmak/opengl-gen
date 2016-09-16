@@ -171,6 +171,12 @@ namespace GLGenerator
                 {
                     output.WriteLine("//   " + version);
                 }
+                output.WriteLine("//");
+                output.WriteLine("// GL extensions included:");
+                foreach (string extension in IncludedExtensions)
+                {
+                    output.WriteLine("//   " + extension);
+                }
                 output.WriteLine();
                 output.WriteLine("using System;");
                 output.WriteLine("using System.Runtime.InteropServices;");
@@ -306,45 +312,59 @@ namespace GLGenerator
 
         static void ProcessFeatureOrExtension(XmlNode node, List<string> includedEnums, List<string> includedCommands)
         {
-            var removedEnums = node.SelectNodes("remove/enum")
-                .Cast<XmlNode>()
-                .Select(x => GetAttributeOrNull(x, "name"));
-
-            var removedCommands = node.SelectNodes("remove/command")
-                .Cast<XmlNode>()
-                .Select(x => GetAttributeOrNull(x, "name"));
-
-            var requiredEnums = node.SelectNodes("require/enum")
-                .Cast<XmlNode>()
-                .Select(x => GetAttributeOrNull(x, "name"));
-
-            var requiredCommands = node.SelectNodes("require/command")
-                .Cast<XmlNode>()
-                .Select(x => GetAttributeOrNull(x, "name"));
-
-            foreach (string name in removedEnums)
+            foreach (XmlNode removeNode in node.SelectNodes("remove"))
             {
-                includedEnums.Remove(name);
-            }
-
-            foreach (string name in removedCommands)
-            {
-                includedCommands.Remove(name);
-            }
-
-            foreach (string name in requiredEnums)
-            {
-                if (!includedEnums.Contains(name))
+                string api = GetAttributeOrNull(removeNode, "api");
+                if (api == null || api == "gl")
                 {
-                    includedEnums.Add(name);
+                    var removedEnums = removeNode.SelectNodes("enum")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    var removedCommands = removeNode.SelectNodes("command")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    foreach (string name in removedEnums)
+                    {
+                        includedEnums.Remove(name);
+                    }
+
+                    foreach (string name in removedCommands)
+                    {
+                        includedCommands.Remove(name);
+                    }
                 }
             }
 
-            foreach (string name in requiredCommands)
+            foreach (XmlNode requireNode in node.SelectNodes("require"))
             {
-                if (!includedCommands.Contains(name))
+                string api = GetAttributeOrNull(requireNode, "api");
+                if (api == null || api == "gl")
                 {
-                    includedCommands.Add(name);
+                    var requiredEnums = requireNode.SelectNodes("enum")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    var requiredCommands = requireNode.SelectNodes("command")
+                        .Cast<XmlNode>()
+                        .Select(x => GetAttributeOrNull(x, "name"));
+
+                    foreach (string name in requiredEnums)
+                    {
+                        if (!includedEnums.Contains(name))
+                        {
+                            includedEnums.Add(name);
+                        }
+                    }
+
+                    foreach (string name in requiredCommands)
+                    {
+                        if (!includedCommands.Contains(name))
+                        {
+                            includedCommands.Add(name);
+                        }
+                    }
                 }
             }
         }
