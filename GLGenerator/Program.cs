@@ -365,7 +365,7 @@ namespace GLGenerator
                 { "const GLubyte *", "/*const*/ byte[]" },
                 { "const GLuint *", "/*const*/ uint[]" },
                 { "const GLushort *", "/*const*/ ushort[]" },
-                { "const void *", "byte[]" },
+                { "const void *", "/*const*/ IntPtr" },
                 { "const void *const*", "/*const*/ IntPtr" },
                 { "GLbitfield", "GLenum" },
                 { "GLboolean *", "out bool" },
@@ -393,7 +393,7 @@ namespace GLGenerator
                 { "GLuint", "uint" },
                 { "GLuint64 *", "out ulong" },
                 { "GLuint64", "ulong" },
-                { "void *", "byte[]" },
+                { "void *", "IntPtr" },
                 { "void **", "IntPtr" },
             };
 
