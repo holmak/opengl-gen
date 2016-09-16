@@ -35,6 +35,7 @@ namespace GLGenerator
         public static string[] IncludedExtensions = new string[]
         {
             "GL_EXT_texture_compression_s3tc",
+            "GL_KHR_debug",
         };
         
         static void Main(string[] args)
@@ -185,6 +186,15 @@ namespace GLGenerator
                 output.WriteLine();
                 output.WriteLine("public static class GL");
                 output.WriteLine("{");
+                output.WriteLine("    public delegate void DebugCallback(");
+                output.WriteLine("        GL.GLenum source,");
+                output.WriteLine("        GL.GLenum type,");
+                output.WriteLine("        uint id,");
+                output.WriteLine("        GL.GLenum severity,");
+                output.WriteLine("        int length,");
+                output.WriteLine("        IntPtr message,");
+                output.WriteLine("        IntPtr userParam);");
+                output.WriteLine();
 
                 //==============================================================================
                 // Generate enum declarations
@@ -387,6 +397,7 @@ namespace GLGenerator
                 { "const GLushort *", "/*const*/ ushort[]" },
                 { "const void *", "/*const*/ IntPtr" },
                 { "const void *const*", "/*const*/ IntPtr" },
+                { "GLDEBUGPROC", "[MarshalAs(UnmanagedType.FunctionPtr)] DebugCallback" },
                 { "GLbitfield", "GLenum" },
                 { "GLboolean *", "out bool" },
                 { "GLboolean", "bool" },

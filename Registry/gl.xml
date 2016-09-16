@@ -423,6 +423,7 @@ typedef unsigned int GLhandleARB;
             <enum name="GL_CONVOLUTION_1D_EXT"/>
             <enum name="GL_CONVOLUTION_2D_EXT"/>
             <enum name="GL_CULL_FACE"/>
+            <enum name="GL_DEBUG_OUTPUT_SYNCHRONOUS"/>
             <enum name="GL_DEPTH_TEST"/>
             <enum name="GL_DITHER"/>
             <enum name="GL_EDGE_FLAG_ARRAY"/>
