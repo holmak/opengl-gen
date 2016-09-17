@@ -358,7 +358,7 @@ namespace GLGenerator
                         uint value;
                         if (enumValues.TryGetValue(member, out value))
                         {
-                            output.WriteLine("#define {0} 0x{1:X8},", member, value);
+                            output.WriteLine("#define {0} 0x{1:X8}", member, value);
                         }
                     }
                     output.WriteLine();
