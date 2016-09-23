@@ -275,7 +275,12 @@ namespace GLGenerator
 
                     output.WriteLine("    private static T Load<T>(string name)");
                     output.WriteLine("    {");
-                    output.WriteLine("        return Marshal.GetDelegateForFunctionPointer<T>(SDL.SDL_GL_GetProcAddress(name));");
+                    output.WriteLine("        IntPtr proc = SDL.SDL_GL_GetProcAddress(name);");
+                    output.WriteLine("        if (proc == IntPtr.Zero)");
+                    output.WriteLine("        {");
+                    output.WriteLine("            throw new GameException(\"Unable to load OpenGL function \" + name);");
+                    output.WriteLine("        }");
+                    output.WriteLine("        return Marshal.GetDelegateForFunctionPointer<T>(proc);");
                     output.WriteLine("    }");
 
                     output.WriteLine("    public static void LoadAll()");
