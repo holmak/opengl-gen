@@ -509,7 +509,8 @@ namespace GLGenerator
         {
             Dictionary<string, string> translations = new Dictionary<string, string>
             {
-                { "const GLbyte *", "/*const*/ byte[]" },
+                { "const GLboolean *", "/*const*/ bool[]" },
+                { "const GLbyte *", "/*const*/ sbyte[]" },
                 { "const GLchar *", "/*const*/ string" },
                 { "const GLchar *const*", "/*const*/ string[]" },
                 { "const GLdouble *", "/*const*/ double[]" },
@@ -523,12 +524,13 @@ namespace GLGenerator
                 { "const GLushort *", "/*const*/ ushort[]" },
                 { "const void *", "/*const*/ IntPtr" },
                 { "const void *const*", "/*const*/ IntPtr" },
-                { "GLDEBUGPROC", "[MarshalAs(UnmanagedType.FunctionPtr)] DebugCallback" },
                 { "GLbitfield", "GLenum" },
                 { "GLboolean *", "out bool" },
                 { "GLboolean", "bool" },
-                { "GLbyte *", "out byte" },
+                { "GLbyte *", "out sbyte" },
+                { "GLbyte", "sbyte" },
                 { "GLchar *", "StringBuilder" },
+                { "GLDEBUGPROC", "[MarshalAs(UnmanagedType.FunctionPtr)] DebugCallback" },
                 { "GLdouble *", "out double" },
                 { "GLdouble", "double" },
                 { "GLenum *", "IntPtr" },
@@ -545,11 +547,14 @@ namespace GLGenerator
                 { "GLsizei", "int" },
                 { "GLsizeiptr", "IntPtr" },
                 { "GLsync", "IntPtr" },
+                { "GLubyte *", "out byte" },
                 { "GLubyte", "byte" },
                 { "GLuint *", "out uint" },
                 { "GLuint", "uint" },
                 { "GLuint64 *", "out ulong" },
                 { "GLuint64", "ulong" },
+                { "GLushort *", "out ushort" },
+                { "GLushort", "ushort" },
                 { "void *", "IntPtr" },
                 { "void **", "IntPtr" },
             };
@@ -590,6 +595,7 @@ namespace GLGenerator
             // Escape identifiers that are also C# reserved tokens.
             string[] reservedTokens = new string[]
             {
+                "base",
                 "params",
                 "ref",
                 "string",
