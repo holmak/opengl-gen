@@ -41,6 +41,12 @@ namespace GLGenerator
         public const bool GenerateC = true;
         public const bool GenerateCSharp = true;
 
+        /// <summary>
+        /// If true, GL functions that should be present but are not are silently ignored.
+        /// (The program will crash when the missing function is called, instead of at load-time.)
+        /// </summary>
+        public const bool AllowMissingFunctions = true;
+
         static void Main(string[] args)
         {
             XmlDocument document = new XmlDocument();
@@ -273,16 +279,33 @@ namespace GLGenerator
                     // Generate code to load the GL function pointers
                     //==============================================================================
 
-                    output.WriteLine("    private static T Load<T>(string name)");
-                    output.WriteLine("    {");
-                    output.WriteLine("        IntPtr proc = SDL.SDL_GL_GetProcAddress(name);");
-                    output.WriteLine("        if (proc == IntPtr.Zero)");
-                    output.WriteLine("        {");
-                    output.WriteLine("            throw new GameException(\"Unable to load OpenGL function \" + name);");
-                    output.WriteLine("        }");
-                    output.WriteLine("        return Marshal.GetDelegateForFunctionPointer<T>(proc);");
-                    output.WriteLine("    }");
+                    if (AllowMissingFunctions)
+                    {
+                        output.WriteLine("    private static T Load<T>(string name) where T : class");
+                        output.WriteLine("    {");
+                        output.WriteLine("        IntPtr proc = SDL.SDL_GL_GetProcAddress(name);");
+                        output.WriteLine("        if (proc == IntPtr.Zero)");
+                        output.WriteLine("        {");
+                        output.WriteLine("            return null;");
+                        output.WriteLine("        }");
+                        output.WriteLine("    ");
+                        output.WriteLine("        return Marshal.GetDelegateForFunctionPointer<T>(proc);");
+                        output.WriteLine("    }");
+                    }
+                    else
+                    {
+                        output.WriteLine("    private static T Load<T>(string name)");
+                        output.WriteLine("    {");
+                        output.WriteLine("        IntPtr proc = SDL.SDL_GL_GetProcAddress(name);");
+                        output.WriteLine("        if (proc == IntPtr.Zero)");
+                        output.WriteLine("        {");
+                        output.WriteLine("            throw new GameException(\"Unable to load OpenGL function \" + name);");
+                        output.WriteLine("        }");
+                        output.WriteLine("        return Marshal.GetDelegateForFunctionPointer<T>(proc);");
+                        output.WriteLine("    }");
+                    }
 
+                    output.WriteLine();
                     output.WriteLine("    public static void LoadAll()");
                     output.WriteLine("    {");
 
