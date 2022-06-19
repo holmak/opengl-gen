@@ -45,7 +45,7 @@ namespace GLGenerator
         /// If true, GL functions that should be present but are not are silently ignored.
         /// (The program will crash when the missing function is called, instead of at load-time.)
         /// </summary>
-        public const bool AllowMissingFunctions = true;
+        public const bool AllowMissingFunctions = false;
 
         static void Main(string[] args)
         {
@@ -76,18 +76,6 @@ namespace GLGenerator
             }
 
             //==============================================================================
-            // Parse groups (subsets of GLenum values; these translate to C# enums)
-            //==============================================================================
-
-            foreach (XmlNode group in document.SelectNodes("/registry/groups/group"))
-            {
-                List<string> members = group.SelectNodes("enum").Cast<XmlNode>()
-                    .Select(x => x.Attributes["name"].Value).ToList();
-
-                groups.Add(group.Attributes["name"].Value, members);
-            }
-
-            //==============================================================================
             // Parse enum numeric values
             //==============================================================================
 
@@ -97,6 +85,7 @@ namespace GLGenerator
                 string literal = constant.Attributes["value"].Value;
                 string api = GetAttributeOrNull(constant, "api");
                 string type = GetAttributeOrNull(constant, "type");
+                string groupNames = GetAttributeOrNull(constant, "group");
 
                 // Ignore enum values that are part of other APIs, like GLES.
                 if (api != null && api != "gl")
@@ -125,6 +114,21 @@ namespace GLGenerator
                 }
 
                 enumValues.Add(name, value);
+
+                if (groupNames != null)
+                {
+                    foreach (string groupName in groupNames.Split(','))
+                    {
+                        List<string> members;
+                        if (!groups.TryGetValue(groupName, out members))
+                        {
+                            members = new List<string>();
+                            groups.Add(groupName, members);
+                        }
+
+                        members.Add(name);
+                    }
+                }
             }
 
             //==============================================================================
@@ -228,23 +232,26 @@ namespace GLGenerator
                     foreach (var pair in groups)
                     {
                         string name = pair.Key;
-                        List<string> members = pair.Value;
+                        List<string> members = pair.Value.Intersect(includedEnums).ToList();
 
-                        output.WriteLine("    public enum {0} : uint", name);
-                        output.WriteLine("    {");
-                        foreach (string member in members)
+                        if (members.Count > 0)
                         {
-                            if (includedEnums.Contains(member))
+                            output.WriteLine("    public enum {0} : uint", name);
+                            output.WriteLine("    {");
+                            foreach (string member in members)
                             {
-                                uint value;
-                                if (enumValues.TryGetValue(member, out value))
+                                if (includedEnums.Contains(member))
                                 {
-                                    output.WriteLine("        {0} = 0x{1:X8},", member, value);
+                                    uint value;
+                                    if (enumValues.TryGetValue(member, out value))
+                                    {
+                                        output.WriteLine("        {0} = 0x{1:X8},", member, value);
+                                    }
                                 }
                             }
+                            output.WriteLine("    }");
+                            output.WriteLine();
                         }
-                        output.WriteLine("    }");
-                        output.WriteLine();
                     }
 
                     //==============================================================================
