@@ -41,6 +41,7 @@ namespace GLGenerator
         public const bool GenerateC = true;
         public const bool GenerateCSharp = true;
         public static readonly string OutputFolder = "Output";
+        public static readonly string ExtraPrefix = "o";
 
         /// <summary>
         /// If true, GL functions that should be present but are not are silently ignored.
@@ -399,7 +400,7 @@ namespace GLGenerator
                     foreach (string commandName in includedCommands)
                     {
                         GLCommand command = commands[commandName];
-                        output.WriteLine("extern GLPROC_{0} {0};", command.Name);
+                        output.WriteLine("extern GLPROC_{0} {1}{0};", command.Name, ExtraPrefix);
                     }
                     output.WriteLine();
 
@@ -416,7 +417,7 @@ namespace GLGenerator
 
                     output.WriteLine("#include <assert.h>");
                     output.WriteLine("#include \"GL.h\"");
-                    output.WriteLine("#include \"SDL.h\"");
+                    output.WriteLine("#include \"SDL/SDL.h\"");
                     output.WriteLine();
 
                     //==============================================================================
@@ -426,7 +427,7 @@ namespace GLGenerator
                     foreach (string commandName in includedCommands)
                     {
                         GLCommand command = commands[commandName];
-                        output.WriteLine("GLPROC_{0} {0};", command.Name);
+                        output.WriteLine("GLPROC_{0} {1}{0};", command.Name, ExtraPrefix);
                     }
                     output.WriteLine();
 
@@ -446,7 +447,7 @@ namespace GLGenerator
                     foreach (string commandName in includedCommands)
                     {
                         GLCommand command = commands[commandName];
-                        output.WriteLine("    {0} = Load(\"{0}\");", command.Name);
+                        output.WriteLine("    {1}{0} = Load(\"{0}\");", command.Name, ExtraPrefix);
                     }
                     output.WriteLine("}");
                 }
