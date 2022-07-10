@@ -71,8 +71,7 @@ namespace GLGenerator
 
             foreach (XmlNode type in document.SelectNodes("/registry/types/type"))
             {
-                if (GetAttributeOrNull(type, "api") == null &&
-                    GetAttributeOrNull(type, "name") == null)
+                if (!type.InnerText.StartsWith("#include"))
                 {
                     typedefs.Add(type.InnerText);
                 }
@@ -352,6 +351,9 @@ namespace GLGenerator
                     //==============================================================================
                     // Generate typedefs
                     //==============================================================================
+
+                    output.WriteLine("#include \"khrplatform.h\"");
+                    output.WriteLine();
 
                     foreach (string typedef in typedefs)
                     {
