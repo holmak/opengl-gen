@@ -391,13 +391,13 @@ namespace GLGenerator
                     output.WriteLine();
 
                     //==============================================================================
-                    // Generate function pointers for GL functions
+                    // Declare pointers to GL functions
                     //==============================================================================
 
                     foreach (string commandName in includedCommands)
                     {
                         GLCommand command = commands[commandName];
-                        output.WriteLine("GLPROC_{0} {0};", command.Name);
+                        output.WriteLine("extern GLPROC_{0} {0};", command.Name);
                     }
                     output.WriteLine();
 
@@ -414,6 +414,18 @@ namespace GLGenerator
 
                     output.WriteLine("#include <assert.h>");
                     output.WriteLine("#include \"GL.h\"");
+                    output.WriteLine("#include \"SDL.h\"");
+                    output.WriteLine();
+
+                    //==============================================================================
+                    // Define pointers to GL functions
+                    //==============================================================================
+
+                    foreach (string commandName in includedCommands)
+                    {
+                        GLCommand command = commands[commandName];
+                        output.WriteLine("GLPROC_{0} {0};", command.Name);
+                    }
                     output.WriteLine();
 
                     //==============================================================================
