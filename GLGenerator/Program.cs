@@ -399,6 +399,13 @@ namespace GLGenerator
                         GLCommand command = commands[commandName];
                         output.WriteLine("GLPROC_{0} {0};", command.Name);
                     }
+                    output.WriteLine();
+
+                    //==============================================================================
+                    // Declare the loading function
+                    //==============================================================================
+
+                    output.WriteLine("void LoadGL();");
                 }
 
                 using (StreamWriter output = new StreamWriter(Path.Combine(OutputFolder, "GL.c")))
