@@ -447,7 +447,7 @@ namespace GLGenerator
                     foreach (string commandName in includedCommands)
                     {
                         GLCommand command = commands[commandName];
-                        output.WriteLine("    {1}{0} = Load(\"{0}\");", command.Name, ExtraPrefix);
+                        output.WriteLine("    {1}{0} = (GLPROC_{0})Load(\"{0}\");", command.Name, ExtraPrefix);
                     }
                     output.WriteLine("}");
                 }
