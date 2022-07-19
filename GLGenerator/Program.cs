@@ -41,7 +41,7 @@ namespace GLGenerator
         public const bool GenerateC = true;
         public const bool GenerateCSharp = true;
         public static readonly string OutputFolder = "Output";
-        public static readonly string ExtraPrefix = "o";
+        public static readonly string ExtraPrefix = "";
 
         /// <summary>
         /// If true, GL functions that should be present but are not are silently ignored.
