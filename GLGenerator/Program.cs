@@ -416,8 +416,8 @@ namespace GLGenerator
                     WriteHeaderComment(output, detailed: false);
 
                     output.WriteLine("#include <assert.h>");
+                    output.WriteLine("#include <SDL2/SDL.h>");
                     output.WriteLine("#include \"GL.h\"");
-                    output.WriteLine("#include \"SDL/SDL.h\"");
                     output.WriteLine();
 
                     //==============================================================================
